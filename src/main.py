@@ -13,14 +13,22 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png"]
 )
 
+if "image_context" not in st.session_state:
+    st.session_state.image_context = ""
+
+
 
 if uploaded_file:
 
     image_result = analyze_image(uploaded_file)
 
-    st.subheader("Image Analysis")
+    st.session_state.image_context = image_result
 
+    st.subheader("Image Analysis")
     st.write(image_result)
+
+
+
 
 
 
@@ -32,10 +40,26 @@ if btn:
 question = st.text_input("Question: ")
 
 if question:
+
+    final_question = question
+
+    if st.session_state.image_context:
+
+        final_question = f"""
+        Image Context:
+        {st.session_state.image_context}
+
+        User Question:
+        {question}
+
+        Use the image context if relevant.
+        """
+
     chain = get_qa_chain()
+
     response = chain.invoke(
-    {"query": question}
-)
+        {"query": final_question}
+    )
 
     st.header("Answer")
     st.write(response["result"])
