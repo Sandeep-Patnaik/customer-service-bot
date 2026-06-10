@@ -1,22 +1,49 @@
 import streamlit as st
-from langchain_helper import get_qa_chain, create_vector_db
+
+from medical_helper import detect_medical_entities
+
+from langchain_helper import (
+    get_qa_chain,
+    get_medical_qa_chain,
+    create_vector_db
+)
+
 from image_helper import analyze_image
 
 
-st.title(" CUSTOMER SERVICE CHATBOT 🤖")
+st.set_page_config(
+    page_title="AI Assistant",
+    page_icon="🤖",
+    layout="centered"
+)
 
+st.title("🤖 Multi-Modal AI Assistant")
 
+mode = st.selectbox(
+    "Select Assistant Mode",
+    [
+        "Customer Service",
+        "Medical Assistant"
+    ]
+)
 
+st.divider()
+
+# ---------------------------
+# Session State
+# ---------------------------
+
+if "image_context" not in st.session_state:
+    st.session_state.image_context = ""
+
+# ---------------------------
+# Image Upload
+# ---------------------------
 
 uploaded_file = st.file_uploader(
     "Upload Image",
     type=["jpg", "jpeg", "png"]
 )
-
-if "image_context" not in st.session_state:
-    st.session_state.image_context = ""
-
-
 
 if uploaded_file:
 
@@ -24,20 +51,35 @@ if uploaded_file:
 
     st.session_state.image_context = image_result
 
-    st.subheader("Image Analysis")
+    st.subheader("📷 Image Analysis")
     st.write(image_result)
 
+st.divider()
 
+# ---------------------------
+# Customer Knowledge Base
+# ---------------------------
 
+if mode == "Customer Service":
 
+    btn = st.button(
+        "Create Customer Knowledge Base"
+    )
 
+    if btn:
+        create_vector_db()
 
+# ---------------------------
+# Question Input
+# ---------------------------
 
-btn = st.button("Create Knowledgebase")
-if btn:
-    create_vector_db()
+question = st.text_input(
+    "Ask a Question"
+)
 
-question = st.text_input("Question: ")
+# ---------------------------
+# Processing
+# ---------------------------
 
 if question:
 
@@ -55,11 +97,52 @@ if question:
         Use the image context if relevant.
         """
 
-    chain = get_qa_chain()
+    # ---------------------------
+    # Medical Entity Recognition
+    # ---------------------------
 
-    response = chain.invoke(
-        {"query": final_question}
-    )
+    if mode == "Medical Assistant":
 
-    st.header("Answer")
-    st.write(response["result"])
+        entities = detect_medical_entities(
+            question
+        )
+
+        if entities:
+
+            st.subheader(
+                "🩺 Detected Medical Entities"
+            )
+
+            for entity in entities:
+                st.write(entity)
+
+    # ---------------------------
+    # Select Chain
+    # ---------------------------
+
+    if mode == "Customer Service":
+
+        chain = get_qa_chain()
+
+    else:
+
+        chain = get_medical_qa_chain()
+
+    # ---------------------------
+    # Generate Response
+    # ---------------------------
+
+    try:
+
+        with st.spinner("Generating response..."):
+
+            response = chain.invoke(
+                {"query": final_question}
+            )
+
+        st.subheader("💡 Answer")
+        st.write(response["result"])
+
+    except Exception as e:
+
+        st.error(str(e))
