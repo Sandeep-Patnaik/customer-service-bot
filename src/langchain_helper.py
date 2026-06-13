@@ -35,6 +35,8 @@ customer_vectordb_path = "faiss_index"
 
 medical_vectordb_path = "faiss_index/medical_index"
 
+arxiv_db_path = "faiss_index/arxiv_index"
+
 # --------------------------------------------------
 # Customer Service Vector DB
 # --------------------------------------------------
@@ -82,6 +84,27 @@ def create_medical_vector_db():
 
     print("Medical FAISS index created successfully!")
 
+
+def create_arxiv_vector_db():
+
+    loader = CSVLoader(
+        file_path="../dataset/Arxiv/arxiv_dataset.csv",
+        source_column="prompt",
+        encoding="utf-8"
+    )
+
+    data = loader.load()
+
+    print(f"ArXiv documents loaded: {len(data)}")
+
+    vectordb = FAISS.from_documents(
+        documents=data,
+        embedding=embeddings
+    )
+
+    vectordb.save_local(arxiv_db_path)
+
+    print("ArXiv FAISS index created successfully!")
 # --------------------------------------------------
 # Customer QA Chain
 # --------------------------------------------------
@@ -172,6 +195,55 @@ def get_medical_qa_chain():
 
     return chain
 
+
+# --------------------------------------------------
+# ArXiv QA Chain
+# --------------------------------------------------
+
+def get_arxiv_qa_chain():
+
+    vectordb = FAISS.load_local(
+        arxiv_db_path,
+        embeddings,
+        allow_dangerous_deserialization=True
+    )
+
+    retriever = vectordb.as_retriever(
+        search_kwargs={"k": 3}
+    )
+
+    prompt_template = """
+    You are an ArXiv research assistant.
+
+    Use only the provided research paper context.
+
+    Explain concepts clearly and accurately.
+
+    If the answer is not present in the context,
+    respond with:
+    I don't know.
+
+    Context:
+    {context}
+
+    Question:
+    {question}
+    """
+
+    PROMPT = PromptTemplate(
+        template=prompt_template,
+        input_variables=["context", "question"]
+    )
+
+    chain = RetrievalQA.from_chain_type(
+        llm=llm,
+        retriever=retriever,
+        chain_type="stuff",
+        chain_type_kwargs={"prompt": PROMPT}
+    )
+
+    return chain
+
 # --------------------------------------------------
 # Dynamic Update System (Task 1)
 # --------------------------------------------------
@@ -235,4 +307,4 @@ def update_vector_db():
 
 if __name__ == "__main__":
 
-    create_medical_vector_db()
+    pass

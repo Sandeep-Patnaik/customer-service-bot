@@ -5,6 +5,7 @@ from medical_helper import detect_medical_entities
 from langchain_helper import (
     get_qa_chain,
     get_medical_qa_chain,
+    get_arxiv_qa_chain,
     create_vector_db
 )
 
@@ -23,7 +24,8 @@ mode = st.selectbox(
     "Select Assistant Mode",
     [
         "Customer Service",
-        "Medical Assistant"
+        "Medical Assistant",
+        "ArXiv Research Assistant"
     ]
 )
 
@@ -124,10 +126,13 @@ if question:
 
         chain = get_qa_chain()
 
-    else:
+    elif mode == "Medical Assistant":
 
         chain = get_medical_qa_chain()
 
+    elif mode == "ArXiv Research Assistant":
+
+        chain = get_arxiv_qa_chain()
     # ---------------------------
     # Generate Response
     # ---------------------------
