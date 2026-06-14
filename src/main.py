@@ -8,6 +8,10 @@ from langchain_helper import (
     get_arxiv_qa_chain,
     create_vector_db
 )
+from multilingual_helper import (
+    prepare_multilingual_input,
+    translate_response_if_needed,
+)
 
 from image_helper import analyze_image
 
@@ -85,12 +89,22 @@ question = st.text_input(
 
 if question:
 
-    sentiment = detect_sentiment(question)
+    multilingual = prepare_multilingual_input(question)
+    translated_question = multilingual["translated_text"]
+    detected_language = multilingual["language"]
+
+    sentiment = detect_sentiment(translated_question)
 
     st.subheader("😊 Detected Sentiment")
     st.write(sentiment)
 
-    final_question = question
+    if detected_language != "en":
+
+        st.info(
+            f"Detected language: {detected_language}. Translating input to English for processing."
+        )
+
+    final_question = translated_question
 
     if st.session_state.image_context:
 
@@ -99,7 +113,7 @@ if question:
         {st.session_state.image_context}
 
         User Question:
-        {question}
+        {translated_question}
 
         Use the image context if relevant.
         """
@@ -110,9 +124,7 @@ if question:
 
     if mode == "Medical Assistant":
 
-        entities = detect_medical_entities(
-            question
-        )
+        entities = detect_medical_entities(translated_question)
 
         if entities:
 
@@ -147,9 +159,7 @@ if question:
 
         with st.spinner("Generating response..."):
 
-            response = chain.invoke(
-                {"query": final_question}
-            )
+            response = chain.invoke({"query": final_question})
 
         answer = response["result"]
 
@@ -166,6 +176,11 @@ if question:
                 "😔 I understand your concern. Let me help you.\n\n"
                 + answer
             )
+
+        answer = translate_response_if_needed(
+            answer,
+            detected_language,
+        )
 
         st.subheader("💡 Answer")
         st.write(answer)
