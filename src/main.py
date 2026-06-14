@@ -1,7 +1,6 @@
 import streamlit as st
 
 from medical_helper import detect_medical_entities
-
 from langchain_helper import (
     get_qa_chain,
     get_medical_qa_chain,
