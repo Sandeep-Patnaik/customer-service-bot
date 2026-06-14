@@ -1,6 +1,7 @@
 import streamlit as st
 
 from medical_helper import detect_medical_entities
+from sentiment_helper import detect_sentiment
 from langchain_helper import (
     get_qa_chain,
     get_medical_qa_chain,
@@ -84,6 +85,11 @@ question = st.text_input(
 
 if question:
 
+    sentiment = detect_sentiment(question)
+
+    st.subheader("😊 Detected Sentiment")
+    st.write(sentiment)
+
     final_question = question
 
     if st.session_state.image_context:
@@ -132,6 +138,7 @@ if question:
     elif mode == "ArXiv Research Assistant":
 
         chain = get_arxiv_qa_chain()
+
     # ---------------------------
     # Generate Response
     # ---------------------------
@@ -144,8 +151,24 @@ if question:
                 {"query": final_question}
             )
 
+        answer = response["result"]
+
+        if sentiment == "Positive":
+
+            answer = (
+                "😊 That's great to hear!\n\n"
+                + answer
+            )
+
+        elif sentiment == "Negative":
+
+            answer = (
+                "😔 I understand your concern. Let me help you.\n\n"
+                + answer
+            )
+
         st.subheader("💡 Answer")
-        st.write(response["result"])
+        st.write(answer)
 
     except Exception as e:
 
